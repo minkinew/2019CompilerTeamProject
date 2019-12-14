@@ -172,17 +172,18 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
             }
         }
         if (noReturnStmt)
-            funDecl += "return\n";
+            funDecl += "";
 
-        funDecl += ".end method\n";
+        funDecl += "";
         newTexts.put(ctx, funDecl);
     }
 
 
     private String funcHeader(MiniCParser.Fun_declContext ctx, String fname) {
-        return ".method public static " + symbolTable.getFunSpecStr(fname) + "\n"
-                + "\t.limit stack " + getStackSize(ctx) + "\n"
-                + "\t.limit locals " + getLocalVarSize(ctx) + "\n"; // 탭 기능 지움.
+        return "0000000000000000" + symbolTable.getFunSpecStr(fname) + "\n"
+                + "push %rbp"+ "\n"
+                + "mov %rsp,%rbp" + "\n"
+                + "mov %0x0,%eax \n"; // 탭 기능 지움.
 
     }
 
@@ -203,10 +204,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
     @Override
     public void exitLocal_decl(MiniCParser.Local_declContext ctx) {
         String varDecl = "";
-
+        String temp = "";
         if (isDeclWithInit(ctx)) {
             String vId = symbolTable.getVarId(ctx);
-            varDecl += "ldc " + ctx.LITERAL().getText() + "\n"
+            temp = ctx.LITERAL().getText();
+            int to = Integer.parseInt(temp);
+            String s = String.format("%02X%n", to);
+            s = "$0x" + s;
+            varDecl += "movl " + s + ""
                     + "istore_" + vId + "\n";
         }
         newTexts.put(ctx, varDecl);
@@ -266,11 +271,11 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
     public void exitReturn_stmt(MiniCParser.Return_stmtContext ctx) {
         // <(4) Fill here>
         String returnStmt = "";
-        if (isIntReturn(ctx)) {
-            returnStmt += newTexts.get(ctx.expr());
-            returnStmt += "i";
-        }
-        returnStmt += "return\n";
+//        if (isIntReturn(ctx)) {
+//            returnStmt += newTexts.get(ctx.expr());
+//            returnStmt += "i";
+//        }
+        returnStmt += "ret\n";
         newTexts.put(ctx, returnStmt);
     }
 
@@ -288,7 +293,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
             if (ctx.IDENT() != null) {
                 String idName = ctx.IDENT().getText();
                 if (symbolTable.getVarType(idName) == Type.INT) {
-                    expr += "iload_" + symbolTable.getVarId(idName) + " \n";
+                    expr += "mov" + symbolTable.getVarId(idName) + " \n";
                 }
                 //else	// Type int array => Later! skip now..
                 //	expr += "           lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";

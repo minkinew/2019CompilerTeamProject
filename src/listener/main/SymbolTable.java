@@ -108,7 +108,7 @@ public class SymbolTable {
         printlninfo.sigStr = "java/io/PrintStream/println(I)V";
 
         FInfo maininfo = new FInfo();
-        maininfo.sigStr = "main([Ljava/lang/String;)V";
+        maininfo.sigStr = "<main>";
         _fsymtable.put("_print", printlninfo);
         _fsymtable.put("main", maininfo);
     }
