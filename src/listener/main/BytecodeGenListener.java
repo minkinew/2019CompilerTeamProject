@@ -1,5 +1,6 @@
 package listener.main;
 
+import com.sun.xml.internal.ws.util.StringUtils;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.ParseTreeProperty;
 
@@ -25,7 +26,7 @@ import static listener.main.SymbolTable.*;
 public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeListener {
     ParseTreeProperty<String> newTexts = new ParseTreeProperty<String>();
     SymbolTable symbolTable = new SymbolTable();
-
+    int lo_count = 0;
     int tab = 0;
     int label = 0;
     int count = 0;
@@ -33,11 +34,16 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
     @Override
     public void enterFun_decl(MiniCParser.Fun_declContext ctx) {
+        int numberOfLocalDeclCtx = 0;
+        int stackAreaLength;
+        for(int i = 1; ctx.getChild(5).getChild(i) instanceof MiniCParser.Local_declContext; ++i)
+            ++numberOfLocalDeclCtx;
+        stackAreaLength = (numberOfLocalDeclCtx * 4) + 4;
         symbolTable.initFunDecl();
-
+        symbolTable.set_localVarOffset(stackAreaLength - 4);
         String fname = getFunName(ctx);
         ParamsContext params;
-
+//        System.out.println("stack : "+stackAreaLength);
         if (fname.equals("main")) {
             symbolTable.putLocalVar("args", Type.INTARRAY);
         } else {
@@ -62,9 +68,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
         }
     }
 
-
     @Override
     public void enterLocal_decl(MiniCParser.Local_declContext ctx) {
+        lo_count ++;
+//        System.out.println(getLocalVarName(ctx)+"   "+lo_count);
         if (isArrayDecl(ctx)) {
             symbolTable.putLocalVar(getLocalVarName(ctx), Type.INTARRAY);
         } else if (isDeclWithInit(ctx)) {
@@ -180,13 +187,16 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 
     private String funcHeader(MiniCParser.Fun_declContext ctx, String fname) {
-        return "0000000000000000" + symbolTable.getFunSpecStr(fname) + "\n"
+        lo_count++;
+//        System.out.println("header "+lo_count);
+        lo_count = lo_count * 4 ;
+        String s = String.format("%02x", lo_count);
+        return "" + symbolTable.getFunSpecStr(fname) + "\n"
                 + "push %rbp"+ "\n"
                 + "mov %rsp,%rbp" + "\n"
-                + "mov %0x0,%eax \n"; // 탭 기능 지움.
+                + "sub %0x"+s+", %rsp" +"\n"; // 탭 기능 지움.
 
     }
-
 
     @Override
     public void exitVar_decl(MiniCParser.Var_declContext ctx) {
@@ -205,14 +215,22 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
     public void exitLocal_decl(MiniCParser.Local_declContext ctx) {
         String varDecl = "";
         String temp = "";
+        String temp2 = "";
         if (isDeclWithInit(ctx)) {
             String vId = symbolTable.getVarId(ctx);
+
+            temp2 = vId;
+            int to2 = Integer.parseInt(temp2);
+            String s2 = String.format("%02x", to2);
+            s2 = "$0x" + s2;
+
             temp = ctx.LITERAL().getText();
             int to = Integer.parseInt(temp);
-            String s = String.format("%02X%n", to);
+            String s = String.format("%02x", to);
             s = "$0x" + s;
+
             varDecl += "movl " + s + ""
-                    + "istore_" + vId + "\n";
+                    + ", -" + s2 + "(%rbp)"+"\n";
         }
         newTexts.put(ctx, varDecl);
     }
@@ -293,7 +311,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
             if (ctx.IDENT() != null) {
                 String idName = ctx.IDENT().getText();
                 if (symbolTable.getVarType(idName) == Type.INT) {
-                    expr += "mov" + symbolTable.getVarId(idName) + " \n";
+
+                    String temp2 = "";
+                    temp2 = symbolTable.getVarId(idName);
+                    int to2 = Integer.parseInt(temp2);
+                    String s2 = String.format("%02x", to2);
+                    s2 = "$0x" + s2;
+
+                    expr += "mov  " + s2 + " \n";
                 }
                 //else	// Type int array => Later! skip now..
                 //	expr += "           lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";

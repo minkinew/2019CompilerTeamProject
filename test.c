@@ -1,7 +1,7 @@
 int main(void){
-    int a = 5;
-    int b  = 2 ;
-    int c ;
+    int a =  16;
+    int b  = 2;
+    int c = 48;
     c = a + b;
     return 0;
 }
