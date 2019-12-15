@@ -46,12 +46,19 @@ public class SymbolTable {
     private Map<String, VarInfo> _gsymtable = new HashMap<>();    // global v.
     private Map<String, FInfo> _fsymtable = new HashMap<>();    // function
 
-
+    private int _localVarOffset = 0;
     private int _globalVarID = 0;
     private int _localVarID = 0;
     private int _labelID = 0;
     private int _tempVarID = 0;
 
+    public int get_localVarOffset() {
+        return _localVarOffset;
+    }
+
+    public void set_localVarOffset(int _localVarOffset) {
+        this._localVarOffset = _localVarOffset;
+    }
     SymbolTable() {
         initFunDecl();
         initFunTable();
@@ -66,7 +73,10 @@ public class SymbolTable {
 
     void putLocalVar(String varname, Type type) {
         //<Fill here>
-        VarInfo localVarInfo = new VarInfo(type, _localVarID++);
+        VarInfo localVarInfo = new VarInfo(type,_localVarOffset );
+        _localVarOffset -= 4;
+        if(varname == "args")
+            _localVarOffset += 4;
         _lsymtable.put(varname, localVarInfo);
     }
 
@@ -78,7 +88,10 @@ public class SymbolTable {
 
     void putLocalVarWithInitVal(String varname, Type type, int initVar) {
         //<Fill here>
-        VarInfo initLocalVarInfo = new VarInfo(type, _localVarID++, initVar);
+//        System.out.println(_localVarID+" putLocalVarWithInitVal "+varname +"_localVarOffset " +_localVarOffset);
+        VarInfo initLocalVarInfo = new VarInfo(type, _localVarOffset, initVar);
+//        System.out.println(_localVarOffset);
+        _localVarOffset -= 4;
         _lsymtable.put(varname, initLocalVarInfo);
     }
 
@@ -88,27 +101,27 @@ public class SymbolTable {
         _gsymtable.put(varname, initGloablVarInfo);
     }
 
-	void putParams(MiniCParser.ParamsContext params) {
-		for (int i = 0; i < params.param().size(); i++) {
-			//<Fill here>
-			MiniCParser.ParamContext paramCtx = params.param(i);
-			Type_specContext paramType = paramCtx.type_spec();
-			String paramVarType = getTypeText(paramType);
-			String paramName = paramCtx.IDENT().getText();
+    void putParams(MiniCParser.ParamsContext params) {
+        for (int i = 0; i < params.param().size(); i++) {
+            //<Fill here>
+            MiniCParser.ParamContext paramCtx = params.param(i);
+            Type_specContext paramType = paramCtx.type_spec();
+            String paramVarType = getTypeText(paramType);
+            String paramName = paramCtx.IDENT().getText();
 
-			if (paramVarType.equals("I"))
-				putLocalVar(paramName, Type.INT);
-			else if(paramVarType.equals("V"))
-				putLocalVar(paramName, Type.VOID);
-		}
-	}
+            if (paramVarType.equals("I"))
+                putLocalVar(paramName, Type.INT);
+            else if(paramVarType.equals("V"))
+                putLocalVar(paramName, Type.VOID);
+        }
+    }
 
     private void initFunTable() {
         FInfo printlninfo = new FInfo();
         printlninfo.sigStr = "java/io/PrintStream/println(I)V";
 
         FInfo maininfo = new FInfo();
-        maininfo.sigStr = "<main>";
+        maininfo.sigStr = "main :";
         _fsymtable.put("_print", printlninfo);
         _fsymtable.put("main", maininfo);
     }
@@ -133,7 +146,7 @@ public class SymbolTable {
         argtype += getParamTypesText(ctx.params());
         if (!isVoidF(ctx))
             rtype += "I";
-        res += fname + "(" + argtype + ")" + rtype;
+        res += "<"+fname +">" ;
 
         FInfo finfo = new FInfo();
         finfo.sigStr = res;
@@ -144,8 +157,10 @@ public class SymbolTable {
 
     String getVarId(String name) {
         // <Fill here>
-        if (!(_gsymtable.get(name) == null))
+        if (!(_gsymtable.get(name) == null)) {
             return Integer.toString(_gsymtable.get(name).id);
+
+        }
 
         return Integer.toString(_lsymtable.get(name).id);
     }
