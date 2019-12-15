@@ -509,7 +509,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
         switch (ctx.getChild(1).getText()) {
             case "*":
                 if (calc_temp_number != "") {
-                    expr += "\timul 1111 \t" + calc_temp_number + ",%eax \n";
+                    expr += "\timul \t" + calc_temp_number + ",%eax \n";
                     calc_temp_number = ""; // 초기화
                 } else {
                     expr += "\timul \t%edx,%eax \n";
