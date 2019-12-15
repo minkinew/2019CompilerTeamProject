@@ -7,6 +7,8 @@ import generated.MiniCBaseListener;
 import generated.MiniCParser;
 import generated.MiniCParser.ParamsContext;
 
+import javax.xml.bind.SchemaOutputResolver;
+
 import static listener.main.BytecodeGenListenerHelper.getFunName;
 import static listener.main.BytecodeGenListenerHelper.getFunProlog;
 import static listener.main.BytecodeGenListenerHelper.getLocalVarName;
@@ -21,12 +23,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
     ParseTreeProperty<String> newTexts = new ParseTreeProperty<String>();
     SymbolTable symbolTable = new SymbolTable();
     int lo_count = 0;
+    boolean subcheck = false;
     int tab = 0;
     int label = 0;
     int count = 0;
     boolean maincheck = false;
     String[] normalRegister = {"%edx", "%eax"};
     int registerCount = 0;
+    int register_sub = 1;
     boolean check = false;
     String calc_temp_number = "";
     // program   : decl+
@@ -337,10 +341,29 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                         secondAddNum = ctx.parent.getChild(0).getChild(0).getText();
                     }
                     if (isNumber(firstAddNum) || isNumber(secondAddNum)) {
-                        expr += "\tmov \t" + varOffset + "(%rbp)," + normalRegister[1] + " \n";
+                        if(isNumber(secondAddNum) && ctx.parent.getChild(1).getText().equals("-")){ // - 연산자인경우
+                            String firstNum = ctx.parent.getChild(0).getText(); // ex ) a = 3 - c 일때 3을 처리
+                            firstNum = changeNum(firstNum);
+                            expr += "\tmov \t$" + firstNum + "," + normalRegister[1] + " \n";
+                            subcheck = true;
+                        }
+                        else{
+                            expr += "\tmov \t" + varOffset + "(%rbp)," + normalRegister[1] + " \n";
+                        }
                         registerCount = registerCount - 1;
                     } else {
-                        expr += "\tmov \t" + varOffset + "(%rbp), " + normalRegister[registerCount] + " \n";
+                        if(ctx.parent.getChild(1).getText().equals("-")){ //parent.getchild의 첫번째 자식이 - 를 가지고있으면 -처리과정
+                            System.out.println(ctx.parent.getChild(1).getText()); // add랑 edx와 eax위치를바꿈 그래서 register_sub 변수생성
+                            expr += "\tmov \t" + varOffset + "(%rbp), " + normalRegister[register_sub] + " \n";
+                            register_sub = register_sub -1;
+                            if(register_sub == -1){
+                                register_sub = 1;
+                            }
+                        }
+                        else{
+                            expr += "\tmov \t" + varOffset + "(%rbp), " + normalRegister[registerCount] + " \n";
+                        }
+
                     }
                     registerCount = registerCount + 1;
                     if (registerCount == 2) {
@@ -395,7 +418,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                 targetVar = symbolTable.getVarId(ctx.IDENT().getText());
                 String targetVarOffset = changeNum(targetVar);
                 if(ctx.expr().size() == 1 && isNumber(ctx.expr(0).getChild(0).getText())) // ex) (c = 상수)와 같은 단순 대입 연산 처리
-                    expr = newTexts.get(ctx.expr(0));
+                    expr = newTexts.get(ctx.expr(0)) + "\tmov \t%eax," + "-" + targetVarOffset + "(%rbp)\n";
                 else
                     expr = newTexts.get(ctx.expr(0)) + "\tmov \t%eax," + "-" + targetVarOffset + "(%rbp)\n";
 
@@ -433,7 +456,6 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
     public static boolean isNumber(String str) {
         boolean result = false;
-
 
         try {
             Double.parseDouble(str);
@@ -487,7 +509,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
         switch (ctx.getChild(1).getText()) {
             case "*":
                 if (calc_temp_number != "") {
-                    expr += "\timul \t" + calc_temp_number + ",%eax \n";
+                    expr += "\timul 1111 \t" + calc_temp_number + ",%eax \n";
                     calc_temp_number = ""; // 초기화
                 } else {
                     expr += "\timul \t%edx,%eax \n";
@@ -513,6 +535,16 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                 }
                 break;
             case "-":
+                if (subcheck == true){ //ex)   z = 9 - b  이면 b부분처리 ex ) sub -0x04(%rbp),%eax
+                    String value = "";
+                    value = ctx.parent.getChild(2).getChild(2).getChild(0).getText();
+                    value = symbolTable.getVarId(value);
+                    value = changeNum(value);
+                    expr += "\tsub \t-" +value+"(%rbp)"+ ",%eax \n";
+                    subcheck = false;
+                    calc_temp_number = "";
+                    break;
+                }
                 if (calc_temp_number != "") {
                     expr += "\tsub \t" + calc_temp_number + ",%eax \n";
                     calc_temp_number = ""; // 초기화
