@@ -486,10 +486,20 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
         switch (ctx.getChild(1).getText()) {
             case "*":
-                expr += "imul \n";
+                if (calc_temp_number != "") {
+                    expr += "\timul \t" + calc_temp_number + ",%eax \n";
+                    calc_temp_number = ""; // 초기화
+                } else {
+                    expr += "\timul \t%edx,%eax \n";
+                }
                 break;
             case "/":
-                expr += "idiv \n";
+                if (calc_temp_number != "") {
+                    expr += "\tdiv \t" + calc_temp_number + ",%eax \n";
+                    calc_temp_number = ""; // 초기화
+                } else {
+                    expr += "\tdiv \t%edx,%eax \n";
+                }
                 break;
             case "%":
                 expr += "irem \n";
@@ -503,7 +513,12 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                 }
                 break;
             case "-":
-                expr += "isub \n";
+                if (calc_temp_number != "") {
+                    expr += "\tsub \t" + calc_temp_number + ",%eax \n";
+                    calc_temp_number = ""; // 초기화
+                } else {
+                    expr += "\tsub \t %edx,%eax \n";
+                }
                 break;
             case "==":
                 expr += "isub " + "\n"
