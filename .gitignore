@@ -4,6 +4,8 @@ bin/
 .idea/
 .project
 .classpath
+*.c
 .settings/
 .*.jar
 gen/
+
