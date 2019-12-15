@@ -4,7 +4,9 @@ int main(){
      int z = 0;
      int b = 7;
      int haha = 18;
-     c = 5;
      z = a + 4;
+     b = a + c;
+     printf("%d", a);
+     printf("%d", z);
      return 0;
  }

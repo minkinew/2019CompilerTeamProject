@@ -119,21 +119,11 @@ public class BytecodeGenListenerHelper {
 	}
 	
 	static String getFunProlog() {
-		// return ".class public Test .....
-		// ...
-		// invokenonvirtual java/lang/Object/<init>()
-		// return
-		// .end method"
-//		String prolog = ".class public Test\n"
-//				+ ".super java/lang/Object\n"
-//				+ "; standard initializer\n"
-//				+ ".method public <init>()V\n"
-//				+ "aload_0\n"
-//				+ "invokenonvirtual java/lang/Object/<init>()V\n"
-//				+ "return\n"
-//				+ ".end method\n";
-		String prolog = "";
-		return prolog;
+        String programProlog = ".section .data\n" +
+                "printf_format:\n\t.string \"%d\\n\"\n"+
+                ".section .text\n" +
+                ".global main\n";
+		return programProlog;
 	}
 	
 	static String getCurrentClassName() {

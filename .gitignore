@@ -6,4 +6,3 @@ bin/
 .classpath
 .settings/
 .*.jar
-gen/
