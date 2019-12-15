@@ -1,4 +1,4 @@
-// Generated from C:/Users/ESLAB/IdeaProjects/hw5-2/src\MiniC.g4 by ANTLR 4.7.2
+// Generated from C:/Users/Jihun/IdeaProjects/CompilerTeamProject\MiniC.g4 by ANTLR 4.7.2
  
 package generated;
 

@@ -118,11 +118,11 @@ public class SymbolTable {
 
     private void initFunTable() {
         FInfo printlninfo = new FInfo();
-        printlninfo.sigStr = "java/io/PrintStream/println(I)V";
+        printlninfo.sigStr = "printf";
 
         FInfo maininfo = new FInfo();
         maininfo.sigStr = "main :";
-        _fsymtable.put("_print", printlninfo);
+        _fsymtable.put("printf", printlninfo);
         _fsymtable.put("main", maininfo);
     }
 

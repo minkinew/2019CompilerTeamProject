@@ -37,7 +37,8 @@ expr	:  LITERAL
 	| '(' expr ')'				 
 	| IDENT				 
 	| IDENT '[' expr ']'			 
-	| IDENT '(' args ')'			
+	| IDENT '(' args ')'
+	| PRINT
 	| '-' expr				 
 	| '+' expr				 
 	| '--' expr				 
@@ -104,3 +105,6 @@ WS  :   (   ' '
         )+
 	-> channel(HIDDEN)	 
     ;
+
+PRINT: '"%d"';
+STRING: [0-9a-zA-Z] +;
