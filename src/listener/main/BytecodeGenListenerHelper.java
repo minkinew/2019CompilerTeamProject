@@ -137,6 +137,6 @@ public class BytecodeGenListenerHelper {
 	}
 	
 	static String getCurrentClassName() {
-		return "Test";
+		return "";
 	}
 }
