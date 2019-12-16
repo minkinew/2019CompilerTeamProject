@@ -1,9 +1,9 @@
 int main(){
      int z = 4;
-     int b = 1;
-     z = 9 - b ;
-     b = z * b;
-     printf("%d", b);
-     printf("%d", z);
+     int b = 2;
+     int c = 5;
+     if(z > 3) {
+        printf("%d", 4);
+     }
      return 0;
  }
