@@ -146,7 +146,7 @@ public class SymbolTable {
         argtype += getParamTypesText(ctx.params());
         if (!isVoidF(ctx))
             rtype += "I";
-        res += "<"+fname +">" ;
+        res += fname +":" ;
 
         FInfo finfo = new FInfo();
         finfo.sigStr = res;

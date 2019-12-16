@@ -7,6 +7,9 @@ import generated.MiniCBaseListener;
 import generated.MiniCParser;
 import generated.MiniCParser.ParamsContext;
 
+import java.io.FileWriter;
+import java.io.IOException;
+
 import static listener.main.BytecodeGenListenerHelper.getFunName;
 import static listener.main.BytecodeGenListenerHelper.getFunProlog;
 import static listener.main.BytecodeGenListenerHelper.getLocalVarName;
@@ -34,6 +37,15 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
     String iflabel = "";
     // program   : decl+
 
+    public void writeAssemblyCode(String assemblyCode) {
+        try {
+            FileWriter fw = new FileWriter("./result.s");
+            fw.write(assemblyCode);
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     @Override
     public void enterFun_decl(MiniCParser.Fun_declContext ctx) {
         int numberOfLocalDeclCtx = 0; // Local_Decl의 개수
@@ -103,8 +115,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
         }
 
         newTexts.put(ctx, classProlog + var_decl + fun_decl);
+        String assemblyCode = newTexts.get(ctx);
+        writeAssemblyCode(assemblyCode);
+        System.out.println(assemblyCode);
 
-        System.out.println(newTexts.get(ctx));
     }
 
     // decl   : var_decl | fun_decl
@@ -310,7 +324,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                 returnStmt += "\tmov \t" + returnVarOffset + "(%rbp),%eax\n" +
                         "\tleaveq\n\tretq\n";
             } else {
-                returnStmt += "\tmov \t" + returnValue + "\tpop $rbpq \n\tret\n";
+                returnStmt += "\tmov \t" + returnValue + ",%eax\n\tleaveq\n\tretq\n";
             }
         }
         newTexts.put(ctx, returnStmt);
@@ -445,8 +459,8 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                 String targetVar = "";
                 targetVar = symbolTable.getVarId(ctx.IDENT().getText());
                 String targetVarOffset = changeNum(targetVar);
-                System.out.println(ctx.getText());
-                if (ctx.getChild(2).getChild(1).getText().equals("%") || ctx.getChild(2).getChild(1).getText().equals("/"))
+                if (ctx.getChild(2).getChild(1) != null && (ctx.getChild(2).getChild(1).getText().equals("%") ||
+                        ctx.getChild(2).getChild(1).getText().equals("/")))
                     expr = newTexts.get(ctx.expr(0)) + "\tmov \t%edx," + "-" + targetVarOffset + "(%rbp)\n";
                 else if (ctx.expr().size() == 1 && isNumber(ctx.expr(0).getChild(0).getText())) // ex) (c = 상수)와 같은 단순 대입 연산 처리
                     expr = newTexts.get(ctx.expr(0));
@@ -645,7 +659,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
                     iflabel = l2;
 
                 } else if (!isNumber(first_str) && isNumber(last_str)) {
-                    expr += "\tjg " + l2 + "\n";
+                    expr += "\tjge " + l2 + "\n";
                     iflabel = l2;
 
                 } else {
@@ -703,14 +717,21 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
         if (fname.equals("printf")) {        // System.out.println
             String varName = ctx.getChild(2).getChild(2).getText();
-            String printVar = "-" + changeNum(symbolTable.getVarId(varName)) + "(%rbp)";
-            expr = "\tmovq \t$printf_format,%rdi\n" +
-                    "\tmovq \t" + printVar + ",%rsi\n" +
-                    "\tmovq \t$0x0,%rax\n" +
-                    "\tcall \tprintf\n";
+            if(isNumber(varName)) {
+                expr = "\tmovq \t$printf_format,%rdi\n" +
+                        "\tmovq \t$" + changeNum(varName) + ",%rsi\n" +
+                        "\tmovq \t$0x0,%rax\n" +
+                        "\tcall \tprintf\n";
+            } else {
+                String printVar = "-" + changeNum(symbolTable.getVarId(varName)) + "(%rbp)";
+                expr = "\tmovq \t$printf_format,%rdi\n" +
+                        "\tmovq \t" + printVar + ",%rsi\n" +
+                        "\tmovq \t$0x0,%rax\n" +
+                        "\tcall \tprintf\n";
+            }
         } else {
             expr = newTexts.get(ctx.args())
-                    + "\tcallq \t<" + fname + ">\n";
+                    + "\tcallq \t" + fname + "\n";
         }
         return expr;
 
